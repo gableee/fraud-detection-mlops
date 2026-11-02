@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+.env
+
+# Data (Ignore the massive CSV and processed outputs)
+data/
+!data/*.png  
+
+# Models (Build artifacts)
+models/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# VS Code
+.vscode/
