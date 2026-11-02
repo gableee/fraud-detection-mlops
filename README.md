@@ -46,6 +46,7 @@ CC_Fraud_Detection/
 ├── Dockerfile                # Container instructions
 ├── requirements.txt          # Python dependencies
 └── README.md
+
 🚀 How to Run
 1. Setup & Preprocess
 bash
@@ -53,12 +54,14 @@ python -m venv .venv
 source .venv/bin/activate  # Or .\.venv\Scripts\activate on Windows
 pip install -r requirements.txt
 python src/preprocess.py
+
 2. Train & Track
 bash
 python src/train.py
 python src/tune.py
 # View MLflow UI:
 mlflow ui --backend-store-uri sqlite:///mlflow.db
+
 3. Run the API (Locally)
 bash
 uvicorn api.main:app --reload
