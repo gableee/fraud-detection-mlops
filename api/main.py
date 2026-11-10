@@ -3,16 +3,23 @@ from pydantic import BaseModel
 import pandas as pd
 import numpy as np
 import joblib
+import json
 import os
 
 # 1. Initialize the API
 app = FastAPI(title="Fraud Detection API", version="1.0")
 
-# 2. Load the Baseline Model (Your Choice!)
-MODEL_PATH = "models/baseline_xgb_model.joblib"
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model not found at {MODEL_PATH}. Run src/train.py first.")
+# 2. Load the Tuned Model and its decision threshold
+# The threshold is chosen by src/threshold.py from out-of-fold training predictions
+# (recall-first: catch ~85% of fraud with the fewest false alarms).
+MODEL_PATH = "models/tuned_xgb_model.joblib"
+THRESHOLD_PATH = "models/threshold.json"
+for path, script in ((MODEL_PATH, "src/train.py"), (THRESHOLD_PATH, "src/threshold.py")):
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"{path} not found. Run {script} first.")
 model = joblib.load(MODEL_PATH)
+with open(THRESHOLD_PATH) as f:
+    THRESHOLD = json.load(f)["threshold"]
 
 # 3. Define the Input Data Structure (Pydantic)
 # This tells FastAPI exactly what data to expect.
@@ -74,15 +81,16 @@ def predict_fraud(data: Transaction):
         # Preprocess the input
         X_input = preprocess_single(data)
         
-        # Make a prediction
-        prediction = model.predict(X_input)[0]
-        probability = model.predict_proba(X_input)[0][1]
-        
+        # Score the transaction, then apply our threshold (not the default 0.5)
+        probability = float(model.predict_proba(X_input)[0][1])
+        is_fraud = probability >= THRESHOLD
+
         # Return the result
         return {
-            "is_fraud": bool(prediction),
-            "fraud_probability": round(float(probability), 4),
-            "status": "flagged" if prediction == 1 else "cleared"
+            "is_fraud": is_fraud,
+            "fraud_probability": round(probability, 4),
+            "threshold": round(THRESHOLD, 4),
+            "status": "flagged" if is_fraud else "cleared"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
